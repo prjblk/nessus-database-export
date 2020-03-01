@@ -3,12 +3,12 @@ hostname=localhost
 port=8834
 access_key=
 secret_key=
-username=nessus_username
-password=nessus_password
 trash=false
+update_all=false
 
 [mysql]
-hsotname=localhost
+hostname=localhost
 port=3306
 username=mysql_username
 password=mysql_password
+database=nessusdb
