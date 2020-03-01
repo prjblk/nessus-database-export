@@ -1,0 +1,14 @@
+[nessus]
+hostname=localhost
+port=8834
+access_key=
+secret_key=
+username=nessus_username
+password=nessus_password
+trash=false
+
+[mysql]
+hsotname=localhost
+port=3306
+username=mysql_username
+password=mysql_password
