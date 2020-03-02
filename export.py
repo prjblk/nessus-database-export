@@ -42,7 +42,8 @@ connection = pymysql.connect(host=db_hostname,
                              password=password,
                              db=database,
                              charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
+                             cursorclass=pymysql.cursors.DictCursor,
+                             autocommit=False)
 
 # ---Functions---
 # Nessus API functions
@@ -82,24 +83,53 @@ def update_folders():
             cursor.execute(sql, (folder['id'], folder['type'], folder['name'], folder['type'], folder['name']))
     connection.commit()
 
+def update_plugin(plugin, cursor):
+    # TODO Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved
+    # TODO Populate all fields (e.g. CVSS, refernces after key existence check)
+    sql = "INSERT IGNORE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`, `pub_date`, `mod_date`)\
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    cursor.execute(sql, (plugin['pluginid'], plugin['severity'], plugin['pluginname'], plugin['pluginfamily'], plugin['pluginattributes']['synopsis'], plugin['pluginattributes']['description'], plugin['pluginattributes']['solution'], plugin['pluginattributes']['plugin_information']['plugin_publication_date'], plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)))
 
+def insert_vuln_output(scan_id, host_id, plugin_id, history_id, host_vuln_id, cursor):
+    # Get vuln output
+    vuln_output = get_plugin_output(scan_id, host_id, plugin_id, history_id)
 
-# def insert_host_vuln(host_id, scan_run_id, plugin_id, cursor):
+    for output in vuln_output['outputs']:
+        for port in output['ports'].keys():
+            sql = "INSERT INTO `vuln_output` (`host_vuln_id`, `port`, `output`)\
+                    VALUES (%s, %s, %s)"
+            cursor.execute(sql, (host_vuln_id, port, output['plugin_output']))
+
+    update_plugin(vuln_output['info']['plugindescription'], cursor)
+
+def insert_host_vuln(host_id, history_id, plugin_id, cursor):
+    sql = "INSERT INTO `host_vuln` (`nessus_host_id`, `scan_run_id`, `plugin_id`)\
+            VALUES (%s, %s, %s)"
+    cursor.execute(sql, (host_id, history_id, plugin_id))
 
 def insert_host(scan_id, host_id, history_id, cursor):
-    host = get_host_vuln(scan_id, host_id, history_id)
+    # Get host vulnerabilities for a scan run
+    host = get_host_vuln(scan_id, host_id, history_id) 
 
     # Count number of vulns of each severity for this host in this scan run
     # 0 is informational, 4 is critical
     sev_count = [0] * 5
     for vuln in host['vulnerabilities']:
         sev_count[vuln['severity']] += vuln['count']
-        
-    if (host_id == 5):
-        print(sev_count)
+    
+    # Insert host information
+    sql = "INSERT INTO `host` (`nessus_host_id`, `scan_run_id`, `scan_id`, `host_ip`, `host_fqdn`, `host_start`, `host_end`, `os`, `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
+    cursor.execute(sql, (host_id, history_id, scan_id, host['info']['host-ip'], host['info'].get('host-fqdn', None) , host['info']['host_start'], host['info']['host_end'], host['info'].get('operating-system', None), sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]))
+
+    # Insert host vulnerabilities
+    for vuln in host['vulnerabilities']:
+        insert_host_vuln(host_id, history_id, vuln['plugin_id'], cursor)
+        insert_vuln_output(scan_id, host_id, vuln['plugin_id'], history_id, cursor.lastrowid, cursor)
 
 def insert_scan_run(scan_id, history_id):
+    # Get scan runs for a scan
     scan_run = get_scan_run(scan_id, history_id)
 
     # Count number of vulns of each severity for this scan run
@@ -112,7 +142,7 @@ def insert_scan_run(scan_id, history_id):
         # Insert scan run details
         sql = "INSERT INTO `scan_run` (`scan_run_id`, `scan_id`, `scan_start`, `scan_end`, `targets`, `host_count`, `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        # cursor.execute(sql, (history_id, scan_id, scan_run['info']['scanner_start'], scan_run['info']['scanner_end'], scan_run['info']['targets'], scan_run['info']['hostcount'], sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]))
+        cursor.execute(sql, (history_id, scan_id, scan_run['info']['scanner_start'], scan_run['info']['scanner_end'], scan_run['info']['targets'], scan_run['info']['hostcount'], sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]))
         
         # Insert hosts in scan run
         for host in scan_run['hosts']:
@@ -141,11 +171,8 @@ def update_scans():
         for scan_run in scan_details['history']:
             # If the scan has finished
             if ((scan_run['status'] != 'running') or (scan_run['status'] != 'paused')):
-                # TODO If we haven't already saved this scan run
+                # TODO Check if we haven't already saved this scan run
                 insert_scan_run(scan['id'], scan_run['history_id'])
-
-        
-
-
+    
 update_folders()
 update_scans()
