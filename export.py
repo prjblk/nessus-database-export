@@ -83,11 +83,17 @@ def update_folders():
     connection.commit()
 
 def update_plugin(plugin, cursor):
-    # TODO Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved
-    # TODO Populate all fields (e.g. CVSS, refernces after key existence check)
-    sql = "INSERT IGNORE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`, `pub_date`, `mod_date`)\
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     
+
+    # TODO Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved
+    sql = "INSERT IGNORE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
+        `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    
+    reference = None
+    if plugin['pluginattributes'].get('see_also', None) != None:
+        reference = '\n'.join(plugin['pluginattributes'].get('see_also', None))
+
     cursor.execute(sql, (
         plugin['pluginid'], 
         plugin['severity'], 
@@ -96,6 +102,11 @@ def update_plugin(plugin, cursor):
         plugin['pluginattributes']['synopsis'],
         plugin['pluginattributes']['description'],
         plugin['pluginattributes']['solution'],
+        plugin['pluginattributes']['risk_information'].get('cvss_base_score', None),
+        plugin['pluginattributes']['risk_information'].get('cvss3_base_score', None),
+        plugin['pluginattributes']['risk_information'].get('cvss_vector', None),
+        plugin['pluginattributes']['risk_information'].get('cvss3_vector', None),
+        reference,
         plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
         plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)
         ))
