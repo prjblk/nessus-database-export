@@ -83,13 +83,28 @@ def update_folders():
     connection.commit()
 
 def update_plugin(plugin, cursor):
-    
+    # Check existing plugin_id in plugin DB
+    sql = "SELECT `plugin_id`, `mod_date` FROM `plugin` WHERE `plugin_id` = %s"
+    cursor.execute(sql, (plugin['pluginid']))
+    result = cursor.fetchone()
 
-    # TODO Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved
-    sql = "INSERT IGNORE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
-        `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
+    if result != None:
+        if result['mod_date'] != plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None):
+            # New version of plugin exists, build replace query
+            sql = "REPLACE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
+                `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        else:
+            # Looks like the plugin version is the same skipping
+            return None
+
+    else:
+        # Doesn't exist, build insert query
+        sql = "INSERT INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
+            `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     
+    # Split references array into string delimited by new line
     reference = None
     if plugin['pluginattributes'].get('see_also', None) != None:
         reference = '\n'.join(plugin['pluginattributes'].get('see_also', None))

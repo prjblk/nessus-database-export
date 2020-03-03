@@ -11,16 +11,26 @@ A script to export Nessus results regularly into a MySQL database for easy analy
 
 ## Configuration
 1. Instantiate database schema (see schema.sql file for import)
+
+    e.g. at the mysql command line
+    mysql> source \home\user\Desktop\schema.sql;
 2. Copy config.ini.example to config.ini and fill in all fields
 
 ## Usage
-Install in crontab for scheduled exports.
+Install in crontab for scheduled exports or run manually by just calling the script with no arguments:
 ```
- python3 export.py
+$ python3 export.py
+Processing: REDACTED
+Inserting scan run: 69
+Inserting scan run: 81
+Processing: REDACTED
+Processing: REDACTED
+Inserting scan run: 87
 ```
+Once the export is completed you can run whatever queries you want. e.g.:
+
+<img src="https://i.imgur.com/fehc7j3.png">
 
 ### TODO
-* Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved (currently ignores duplicate PK)
-* Populate all fields for plugins (e.g. CVSS, refernces after key existence check)
-* Add code to pull in compliance scans
+* Check API output for compliance scans and add code to pull in compliance scans
 * Use trash flag to not pull in scans in the trash
