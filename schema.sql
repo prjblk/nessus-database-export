@@ -60,7 +60,7 @@ CREATE TABLE `host` (
   KEY `host_nessus_host_id_idx` (`nessus_host_id`),
   CONSTRAINT `fk_host-scan` FOREIGN KEY (`scan_id`) REFERENCES `scan` (`scan_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_host-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=538 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -80,9 +80,8 @@ CREATE TABLE `host_vuln` (
   KEY `fk_host_vuln-host_idx` (`nessus_host_id`),
   KEY `fk_host_vuln-plugin_idx` (`plugin_id`),
   CONSTRAINT `fk_host_vuln-host` FOREIGN KEY (`nessus_host_id`) REFERENCES `host` (`nessus_host_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_host_vuln-plugin` FOREIGN KEY (`plugin_id`) REFERENCES `plugin` (`plugin_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_host_vuln-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=6593 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -169,7 +168,7 @@ CREATE TABLE `vuln_output` (
   PRIMARY KEY (`vuln_output_id`),
   KEY `fk_vuln_output-host_vuln_id_idx` (`host_vuln_id`),
   CONSTRAINT `fk_vuln_output-host_vuln` FOREIGN KEY (`host_vuln_id`) REFERENCES `host_vuln` (`host_vuln_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=9107 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

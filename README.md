@@ -20,6 +20,7 @@ Install in crontab for scheduled exports.
 ```
 
 ### TODO
-* Check if a scan run has already been imported and skip if it has
 * Check existence of plugin id and insert if not exist or upsert if mod date is newer than one retrieved (currently ignores duplicate PK)
 * Populate all fields for plugins (e.g. CVSS, refernces after key existence check)
+* Add code to pull in compliance scans
+* Use trash flag to not pull in scans in the trash

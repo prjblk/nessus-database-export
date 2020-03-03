@@ -4,7 +4,6 @@ port=8834
 access_key=
 secret_key=
 trash=false
-update_all=false
 
 [mysql]
 hostname=localhost

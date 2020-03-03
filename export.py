@@ -17,7 +17,6 @@ access_key = 'accessKey=' + config.get('nessus','access_key') + ';'
 secret_key = 'secretKey=' + config.get('nessus','secret_key') + ';'
 base = 'https://{hostname}:{port}'.format(hostname=nessus_hostname, port=nessus_port)
 trash = config.getboolean('nessus','trash')
-update_all = config.getboolean('nessus','update_all')
 
 db_hostname = config.get('mysql','hostname')
 username = config.get('mysql','username')
@@ -88,7 +87,18 @@ def update_plugin(plugin, cursor):
     # TODO Populate all fields (e.g. CVSS, refernces after key existence check)
     sql = "INSERT IGNORE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`, `pub_date`, `mod_date`)\
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    cursor.execute(sql, (plugin['pluginid'], plugin['severity'], plugin['pluginname'], plugin['pluginfamily'], plugin['pluginattributes']['synopsis'], plugin['pluginattributes']['description'], plugin['pluginattributes']['solution'], plugin['pluginattributes']['plugin_information']['plugin_publication_date'], plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)))
+    
+    cursor.execute(sql, (
+        plugin['pluginid'], 
+        plugin['severity'], 
+        plugin['pluginname'], 
+        plugin['pluginfamily'],
+        plugin['pluginattributes']['synopsis'],
+        plugin['pluginattributes']['description'],
+        plugin['pluginattributes']['solution'],
+        plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
+        plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)
+        ))
 
 def insert_vuln_output(scan_id, host_id, plugin_id, history_id, host_vuln_id, cursor):
     # Get vuln output
@@ -118,10 +128,21 @@ def insert_host(scan_id, host_id, history_id, cursor):
         sev_count[vuln['severity']] += vuln['count']
     
     # Insert host information
-    sql = "INSERT INTO `host` (`nessus_host_id`, `scan_run_id`, `scan_id`, `host_ip`, `host_fqdn`, `host_start`, `host_end`, `os`, `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    sql = "INSERT INTO `host` (`nessus_host_id`, `scan_run_id`, `scan_id`, `host_ip`, `host_fqdn`, `host_start`, `host_end`, `os`,\
+        `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
-    cursor.execute(sql, (host_id, history_id, scan_id, host['info']['host-ip'], host['info'].get('host-fqdn', None) , host['info']['host_start'], host['info']['host_end'], host['info'].get('operating-system', None), sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]))
+    cursor.execute(sql, (
+        host_id, 
+        history_id, 
+        scan_id, 
+        host['info']['host-ip'], 
+        host['info'].get('host-fqdn', None), 
+        host['info']['host_start'], 
+        host['info']['host_end'], 
+        host['info'].get('operating-system', None),
+        sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]
+        ))
 
     # Insert host vulnerabilities
     for vuln in host['vulnerabilities']:
@@ -140,9 +161,19 @@ def insert_scan_run(scan_id, history_id):
 
     with connection.cursor() as cursor:
         # Insert scan run details
-        sql = "INSERT INTO `scan_run` (`scan_run_id`, `scan_id`, `scan_start`, `scan_end`, `targets`, `host_count`, `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
+        sql = "INSERT INTO `scan_run` (`scan_run_id`, `scan_id`, `scan_start`,`scan_end`, `targets`, `host_count`,\
+            `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        cursor.execute(sql, (history_id, scan_id, scan_run['info']['scanner_start'], scan_run['info']['scanner_end'], scan_run['info']['targets'], scan_run['info']['hostcount'], sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]))
+        
+        cursor.execute(sql, (
+            history_id, 
+            scan_id, 
+            scan_run['info']['scanner_start'], 
+            scan_run['info']['scanner_end'],
+            scan_run['info']['targets'], 
+            scan_run['info']['hostcount'],
+            sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]
+            ))
         
         # Insert hosts in scan run
         for host in scan_run['hosts']:
@@ -158,21 +189,39 @@ def update_scans():
             sql = "INSERT INTO `scan` (`scan_id`, `folder_id`, `type`, `name`)\
                     VALUES (%s, %s, %s, %s)\
                     ON DUPLICATE KEY UPDATE folder_id=%s, type=%s, name=%s"
-            cursor.execute(sql, (scan['id'], scan['folder_id'], scan['type'], scan['name'], scan['folder_id'], scan['type'], scan['name']))
+            cursor.execute(sql, (
+                scan['id'], 
+                scan['folder_id'], 
+                scan['type'], 
+                scan['name'], 
+                scan['folder_id'], 
+                scan['type'], 
+                scan['name']
+                ))
+    
     connection.commit()
 
     for scan in scans['scans']:
-        print ('Processing:' + scan['name'])
+        print ('Processing: ' + scan['name'])
         
         # Retreive details about the current scan
         scan_details = get_scan(scan['id'])
 
         # Check each run of each scan
         for scan_run in scan_details['history']:
-            # If the scan has finished
-            if ((scan_run['status'] != 'running') or (scan_run['status'] != 'paused')):
-                # TODO Check if we haven't already saved this scan run
-                insert_scan_run(scan['id'], scan_run['history_id'])
+            # Only import if scan finished completely
+            if scan_run['status'] == 'completed':
+                
+                result = None
+                with connection.cursor() as cursor:    
+                    sql = "SELECT * FROM `scan_run` WHERE `scan_run_id` = %s"
+                    cursor.execute(sql, (scan_run['history_id']))
+                    result = cursor.fetchone()
+
+                # If scan run hasn't yet been inserted
+                if result == None:
+                    print ('Inserting scan run: ' + str(scan_run['history_id']))
+                    insert_scan_run(scan['id'], scan_run['history_id'])
     
 update_folders()
 update_scans()
