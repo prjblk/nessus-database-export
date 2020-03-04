@@ -233,21 +233,22 @@ def update_scans():
         # Retreive details about the current scan
         scan_details = get_scan(scan['id'])
 
-        # Check each run of each scan
-        for scan_run in scan_details['history']:
-            # Only import if scan finished completely
-            if scan_run['status'] == 'completed':
-                
-                result = None
-                with connection.cursor() as cursor:    
-                    sql = "SELECT * FROM `scan_run` WHERE `scan_run_id` = %s"
-                    cursor.execute(sql, (scan_run['history_id']))
-                    result = cursor.fetchone()
+        if scan_details['history'] != None:
+            # Check each run of each scan
+            for scan_run in scan_details['history']:
+                # Only import if scan finished completely
+                if scan_run['status'] == 'completed':
+                    
+                    result = None
+                    with connection.cursor() as cursor:    
+                        sql = "SELECT * FROM `scan_run` WHERE `scan_run_id` = %s"
+                        cursor.execute(sql, (scan_run['history_id']))
+                        result = cursor.fetchone()
 
-                # If scan run hasn't yet been inserted
-                if result == None:
-                    print ('Inserting scan run: ' + str(scan_run['history_id']))
-                    insert_scan_run(scan['id'], scan_run['history_id'])
+                    # If scan run hasn't yet been inserted
+                    if result == None:
+                        print ('Inserting scan run: ' + str(scan_run['history_id']))
+                        insert_scan_run(scan['id'], scan_run['history_id'])
     
 update_folders()
 update_scans()
