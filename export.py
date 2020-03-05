@@ -126,22 +126,26 @@ def update_plugin(plugin, cursor):
         plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)
         ))
 
-def insert_vuln_output(scan_id, host_id, plugin_id, history_id, host_vuln_id, cursor):
-    # Get vuln output
-    vuln_output = get_plugin_output(scan_id, host_id, plugin_id, history_id)
-
-    for output in vuln_output['outputs']:
+def insert_vuln_output(vuln_output, host_vuln_id, cursor):
+    for output in vuln_output:
         for port in output['ports'].keys():
             sql = "INSERT INTO `vuln_output` (`host_vuln_id`, `port`, `output`)\
                     VALUES (%s, %s, %s)"
             cursor.execute(sql, (host_vuln_id, port, output['plugin_output']))
 
+def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
+    # Need to insert plugin first to have FK relationship
+    # Get vuln output which includes plugin info
+    vuln_output = get_plugin_output(scan_id, host_id, plugin_id, history_id)
     update_plugin(vuln_output['info']['plugindescription'], cursor)
 
-def insert_host_vuln(host_id, history_id, plugin_id, cursor):
+    # Insert host vuln
     sql = "INSERT INTO `host_vuln` (`nessus_host_id`, `scan_run_id`, `plugin_id`)\
             VALUES (%s, %s, %s)"
     cursor.execute(sql, (host_id, history_id, plugin_id))
+
+    # Finally insert vuln output
+    insert_vuln_output(vuln_output['outputs'], cursor.lastrowid, cursor)
 
 def insert_host(scan_id, host_id, history_id, cursor):
     # Get host vulnerabilities for a scan run
@@ -172,8 +176,7 @@ def insert_host(scan_id, host_id, history_id, cursor):
 
     # Insert host vulnerabilities
     for vuln in host['vulnerabilities']:
-        insert_host_vuln(host_id, history_id, vuln['plugin_id'], cursor)
-        insert_vuln_output(scan_id, host_id, vuln['plugin_id'], history_id, cursor.lastrowid, cursor)
+        insert_host_vuln(scan_id, host_id, vuln['plugin_id'], history_id, cursor)
 
 def insert_scan_run(scan_id, history_id):
     # Get scan runs for a scan

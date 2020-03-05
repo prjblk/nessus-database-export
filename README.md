@@ -1,6 +1,12 @@
 # Nessus Professional Database Export
 A script to export Nessus results regularly into a MySQL database for easy analysis/aggregation.
 
+## Use Cases
+* Find occurences of a specific vulnerability across your scans (e.g. in a folder) without having to export all of them to CSV.
+* Search for text in plugin outputs across all your scans.
+* Quickly see trending stats across scan runs (summary stats are calculated at export time and saved in the DB).
+* Build a web app front end to present a subset of results for customers.
+
 ## Prerequisites
 * Nessus Professional
 * MySQL database
