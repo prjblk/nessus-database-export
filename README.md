@@ -38,5 +38,6 @@ Once the export is completed you can run whatever queries you want. e.g.:
 <img src="https://i.imgur.com/fehc7j3.png">
 
 ### TODO
+* Write some common queries and put them in this repo for people to use
 * Check API output for compliance scans and add code to pull in compliance scans
 * Use trash flag to not pull in scans in the trash
