@@ -88,12 +88,36 @@ def update_plugin(plugin, cursor):
     cursor.execute(sql, (plugin['pluginid']))
     result = cursor.fetchone()
 
+    # Split references array into string delimited by new line
+    reference = None
+    if plugin['pluginattributes'].get('see_also', None) != None:
+        reference = '\n'.join(plugin['pluginattributes'].get('see_also', None))
+
     if result != None:
         if result['mod_date'] != plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None):
-            # New version of plugin exists, build replace query
-            sql = "REPLACE INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
-                `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            # New version of plugin exists, build update query
+            sql = "UPDATE `plugin` \
+            SET `severity` = %s, `name` = %s, `family` = %s, `synopsis` = %s, `description` = %s, `solution` = %s,\
+            `cvss_base_score` = %s, `cvss3_base_score` = %s, `cvss_vector` = %s, `cvss3_vector` = %s, `references` = %s, `pub_date` = %s, `mod_date` = %s\
+            WHERE `plugin_id` = %s"
+
+            cursor.execute(sql, (
+            plugin['severity'], 
+            plugin['pluginname'], 
+            plugin['pluginfamily'],
+            plugin['pluginattributes']['synopsis'],
+            plugin['pluginattributes']['description'],
+            plugin['pluginattributes']['solution'],
+            plugin['pluginattributes']['risk_information'].get('cvss_base_score', None),
+            plugin['pluginattributes']['risk_information'].get('cvss3_base_score', None),
+            plugin['pluginattributes']['risk_information'].get('cvss_vector', None),
+            plugin['pluginattributes']['risk_information'].get('cvss3_vector', None),
+            reference,
+            plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
+            plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None),
+            plugin['pluginid']
+            ))
+
         else:
             # Looks like the plugin version is the same skipping
             return None
@@ -103,13 +127,8 @@ def update_plugin(plugin, cursor):
         sql = "INSERT INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
             `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    
-    # Split references array into string delimited by new line
-    reference = None
-    if plugin['pluginattributes'].get('see_also', None) != None:
-        reference = '\n'.join(plugin['pluginattributes'].get('see_also', None))
 
-    cursor.execute(sql, (
+        cursor.execute(sql, (
         plugin['pluginid'], 
         plugin['severity'], 
         plugin['pluginname'], 
