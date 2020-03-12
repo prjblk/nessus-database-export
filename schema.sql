@@ -104,7 +104,7 @@ CREATE TABLE `plugin` (
   `cvss3_base_score` double DEFAULT NULL,
   `cvss_vector` varchar(45) DEFAULT NULL,
   `cvss3_vector` varchar(45) DEFAULT NULL,
-  `references` longtext,
+  `ref` longtext,
   `pub_date` varchar(45) DEFAULT NULL,
   `mod_date` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`plugin_id`)

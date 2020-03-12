@@ -98,7 +98,7 @@ def update_plugin(plugin, cursor):
             # New version of plugin exists, build update query
             sql = "UPDATE `plugin` \
             SET `severity` = %s, `name` = %s, `family` = %s, `synopsis` = %s, `description` = %s, `solution` = %s,\
-            `cvss_base_score` = %s, `cvss3_base_score` = %s, `cvss_vector` = %s, `cvss3_vector` = %s, `references` = %s, `pub_date` = %s, `mod_date` = %s\
+            `cvss_base_score` = %s, `cvss3_base_score` = %s, `cvss_vector` = %s, `cvss3_vector` = %s, `ref` = %s, `pub_date` = %s, `mod_date` = %s\
             WHERE `plugin_id` = %s"
 
             cursor.execute(sql, (
@@ -125,7 +125,7 @@ def update_plugin(plugin, cursor):
     else:
         # Doesn't exist, build insert query
         sql = "INSERT INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
-            `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `references`, `pub_date`, `mod_date`)\
+            `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `ref`, `pub_date`, `mod_date`)\
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
         cursor.execute(sql, (
