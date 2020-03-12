@@ -1,6 +1,6 @@
 -- Run SQL to install stored procedure
--- Get summary stats for scans in a folder given a scan_id
--- Get most scan stats for folder_id 100 by running CALL get_folder_results(100, 0)
+-- Get scan results for scans in a folder given a folder_id
+-- Get all scan results for most recent scans in folder_id 100 by running CALL get_folder_results(100, 0)
 
 DROP PROCEDURE IF EXISTS get_folder_results;
 
