@@ -187,8 +187,8 @@ def insert_host(scan_id, host_id, history_id, cursor):
         scan_id, 
         host['info']['host-ip'], 
         host['info'].get('host-fqdn', None), 
-        host['info']['host_start'], 
-        host['info']['host_end'], 
+        host['info'].get('host_start', None), 
+        host['info'].get('host_end', None), 
         host['info'].get('operating-system', None),
         sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]
         ))

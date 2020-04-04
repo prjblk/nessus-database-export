@@ -1,12 +1,13 @@
 -- Run SQL to install stored procedure
 -- Get scan results for scans in a folder given a folder_id
--- Get all scan results for most recent scans in folder_id 100 by running CALL get_folder_results(100, 0)
+-- Get all scan results for most recent scans in folder_id 100 by running CALL get_folder_results(100, NULL, 0)
+-- If you want to filter out a specific existences of a specific vulnerability you can use the second parameter to specify a plugin_id CALL get_folder_results(100, 10287, 0)
 
 DROP PROCEDURE IF EXISTS get_folder_results;
 
 DELIMITER //
 CREATE PROCEDURE get_folder_results
-(IN fid INT, IN offset INT)
+(IN fid INT, IN pid INT, IN offset INT)
 
 BEGIN
     DECLARE cur_done BOOLEAN DEFAULT FALSE;
@@ -53,31 +54,35 @@ BEGIN
         output LONGTEXT
     );
 
-   OPEN cur_list;
+    OPEN cur_list;
 
-   loop_list: LOOP
-        FETCH cur_list INTO cur_scan_id;
-        IF cur_done THEN
-            LEAVE loop_list;
-        END IF;
-		
-        INSERT INTO temp_table (host_vuln_id, plugin_id, nessus_host_id, scan_run_id, host_id, scan_id, host_ip, host_fqdn, host_start, host_end, os, critical_count, high_count, medium_count, low_count, info_count, severity, name, family, synopsis, description, solution, cvss_base_score, cvss3_base_score, cvss_vector, cvss3_vector, ref, pub_date, mod_date, vuln_output_id, port, output)
-        SELECT * FROM host 
-        NATURAL JOIN host_vuln 
-        NATURAL JOIN plugin 
-        NATURAL JOIN vuln_output 
-        WHERE scan_run_id = 
-        (SELECT scan_run_id FROM nessusdb.scan_run 
-        NATURAL JOIN nessusdb.scan 
-        WHERE nessusdb.scan_run.scan_id = cur_scan_id 
-        ORDER BY scan_start DESC
-        LIMIT 1
-        OFFSET offset);
+    loop_list: LOOP
+            FETCH cur_list INTO cur_scan_id;
+            IF cur_done THEN
+                LEAVE loop_list;
+            END IF;
+            
+            INSERT INTO temp_table (host_vuln_id, plugin_id, nessus_host_id, scan_run_id, host_id, scan_id, host_ip, host_fqdn, host_start, host_end, os, critical_count, high_count, medium_count, low_count, info_count, severity, name, family, synopsis, description, solution, cvss_base_score, cvss3_base_score, cvss_vector, cvss3_vector, ref, pub_date, mod_date, vuln_output_id, port, output)
+            SELECT * FROM host 
+            NATURAL JOIN host_vuln 
+            NATURAL JOIN plugin 
+            NATURAL JOIN vuln_output 
+            WHERE scan_run_id = 
+            (SELECT scan_run_id FROM nessusdb.scan_run 
+            NATURAL JOIN nessusdb.scan 
+            WHERE nessusdb.scan_run.scan_id = cur_scan_id 
+            ORDER BY scan_start DESC
+            LIMIT 1
+            OFFSET offset);
 
-		END LOOP loop_list;
-   CLOSE cur_list;
+            END LOOP loop_list;
+    CLOSE cur_list;
 
-   SELECT * FROM temp_table;
+    IF pid IS NULL THEN
+        SELECT * FROM temp_table;
+    ELSE 
+        SELECT * FROM temp_table WHERE plugin_id = pid;
+    END IF;
 
 END //
 DELIMITER ;
