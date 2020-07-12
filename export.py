@@ -3,13 +3,14 @@ import configparser
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import pymysql.cursors
+import os
 
 # Disable SSL warnings
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Read configuration
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read(os.path.join(os.path.dirname(__file__), 'config.ini'))
 
 nessus_hostname = config.get('nessus','hostname')
 nessus_port = config.get('nessus','port')
