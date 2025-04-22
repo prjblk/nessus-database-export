@@ -4,6 +4,7 @@ import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import pymysql.cursors
 import os
+import json
 
 # Disable SSL warnings
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -18,6 +19,7 @@ access_key = 'accessKey=' + config.get('nessus','access_key') + ';'
 secret_key = 'secretKey=' + config.get('nessus','secret_key') + ';'
 base = 'https://{hostname}:{port}'.format(hostname=nessus_hostname, port=nessus_port)
 trash = config.getboolean('nessus','trash')
+debug = config.getboolean('nessus', 'debug', fallback=False)
 
 db_hostname = config.get('mysql','hostname')
 username = config.get('mysql','username')
@@ -77,6 +79,9 @@ def update_folders():
     with connection.cursor() as cursor:
         # Upsert folders
         for folder in folders['folders']:
+            if debug:
+                print(f"\n[DEBUG] Inserting/Updating folder:")
+                print(json.dumps(folder, indent=2))
             sql = "INSERT INTO `folder` (`folder_id`, `type`, `name`)\
                     VALUES (%s, %s, %s)\
                     ON DUPLICATE KEY UPDATE type=%s, name=%s"
@@ -84,6 +89,10 @@ def update_folders():
     connection.commit()
 
 def update_plugin(plugin, cursor):
+    if debug:
+        print(f"\n[DEBUG] Processing plugin:")
+        print(json.dumps(plugin, indent=2))
+    
     # Check existing plugin_id in plugin DB
     sql = "SELECT `plugin_id`, `mod_date` FROM `plugin` WHERE `plugin_id` = %s"
     cursor.execute(sql, (plugin['pluginid']))
@@ -157,6 +166,15 @@ def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
     # Need to insert plugin first to have FK relationship
     # Get vuln output which includes plugin info
     vuln_output = get_plugin_output(scan_id, host_id, plugin_id, history_id)
+    if debug:
+        print(f"\n[DEBUG] Processing host vulnerability:")
+        print(f"Scan ID: {scan_id}")
+        print(f"Host ID: {host_id}")
+        print(f"Plugin ID: {plugin_id}")
+        print(f"History ID: {history_id}")
+        print("Vuln Output:")
+        print(json.dumps(vuln_output, indent=2))
+    
     update_plugin(vuln_output['info']['plugindescription'], cursor)
 
     # Insert host vuln
@@ -170,6 +188,14 @@ def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
 def insert_host(scan_id, host_id, history_id, cursor):
     # Get host vulnerabilities for a scan run
     host = get_host_vuln(scan_id, host_id, history_id) 
+    
+    if debug:
+        print(f"\n[DEBUG] Processing host:")
+        print(f"Scan ID: {scan_id}")
+        print(f"Host ID: {host_id}")
+        print(f"History ID: {history_id}")
+        print("Host Data:")
+        print(json.dumps(host, indent=2))
 
     # Count number of vulns of each severity for this host in this scan run
     # 0 is informational, 4 is critical
@@ -201,6 +227,13 @@ def insert_host(scan_id, host_id, history_id, cursor):
 def insert_scan_run(scan_id, history_id):
     # Get scan runs for a scan
     scan_run = get_scan_run(scan_id, history_id)
+    
+    if debug:
+        print(f"\n[DEBUG] Processing scan run:")
+        print(f"Scan ID: {scan_id}")
+        print(f"History ID: {history_id}")
+        print("Scan Run Data:")
+        print(json.dumps(scan_run, indent=2))
 
     # Count number of vulns of each severity for this scan run
     # 0 is informational, 4 is critical

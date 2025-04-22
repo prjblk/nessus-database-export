@@ -79,7 +79,7 @@ CREATE TABLE `host_vuln` (
   KEY `fk_host_scan_run_id_idx` (`scan_run_id`),
   KEY `fk_host_vuln-host_idx` (`nessus_host_id`),
   KEY `fk_host_vuln-plugin_idx` (`plugin_id`),
-  CONSTRAINT `fk_host_vuln-host` FOREIGN KEY (`nessus_host_id`) REFERENCES `host` (`nessus_host_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  -- CONSTRAINT `fk_host_vuln-host` FOREIGN KEY (`nessus_host_id`) REFERENCES `host` (`nessus_host_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_host_vuln-plugin` FOREIGN KEY (`plugin_id`) REFERENCES `plugin` (`plugin_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_host_vuln-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
