@@ -221,11 +221,11 @@ def insert_vuln_output(vuln_output, host_vuln_id, cursor):
                     VALUES (%s, %s, %s)"
             cursor.execute(sql, (host_vuln_id, port, output['plugin_output']))
 
-def insert_compliance_output(compliance_output, host_compliance_id, cursor):
+def insert_compliance_output(compliance_output, compliance_id, cursor):
     for output in compliance_output:
-        sql = "INSERT INTO `compliance_output` (`host_compliance_id`, `output`)\
+        sql = "INSERT INTO `compliance_output` (`compliance_id`, `output`)\
                 VALUES (%s, %s)"
-        cursor.execute(sql, (host_compliance_id, output['plugin_output']))
+        cursor.execute(sql, (compliance_id, output['plugin_output']))
 
 def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
     # Need to insert plugin first to have FK relationship
@@ -258,7 +258,7 @@ def insert_compliance(scan_id, host_id, compliance_id, status, history_id, curso
 
     update_plugin(compliance_output['info']['plugindescription'], cursor)
     # Insert compliance check
-    sql = "INSERT INTO `compliance` (`nessus_host_id`, `scan_run_id`, `compliance_id`, `status`)\
+    sql = "INSERT INTO `compliance` (`nessus_host_id`, `scan_run_id`, `plugin_id`, `status`)\
             VALUES (%s, %s, %s, %s)"
     cursor.execute(sql, (host_id, history_id, compliance_id, status))
 
