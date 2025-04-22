@@ -110,6 +110,7 @@ CREATE TABLE `plugin` (
   `ref` longtext,
   `pub_date` varchar(255) DEFAULT NULL,
   `mod_date` varchar(255) DEFAULT NULL,
+  `policy_value` longtext,
   PRIMARY KEY (`plugin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -177,6 +178,45 @@ CREATE TABLE `vuln_output` (
   CONSTRAINT `fk_vuln_output-host_vuln` FOREIGN KEY (`host_vuln_id`) REFERENCES `host_vuln` (`host_vuln_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `compliance`
+--
+
+DROP TABLE IF EXISTS `compliance`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `compliance` (
+  `compliance_id` int(11) NOT NULL AUTO_INCREMENT,
+  `nessus_host_id` int(11) DEFAULT NULL,
+  `scan_run_id` int(11) DEFAULT NULL,
+  `compliance_id` int(11) DEFAULT NULL,
+  `status` int(11) DEFAULT NULL,
+  PRIMARY KEY (`compliance_id`),
+  KEY `fk_compliance-scan_run_idx` (`scan_run_id`),
+  KEY `fk_compliance-plugin_idx` (`compliance_id`),
+  CONSTRAINT `fk_compliance-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_compliance-plugin` FOREIGN KEY (`compliance_id`) REFERENCES `plugin` (`plugin_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `compliance_output`
+--
+
+DROP TABLE IF EXISTS `compliance_output`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `compliance_output` (
+  `compliance_output_id` int(11) NOT NULL AUTO_INCREMENT,
+  `host_compliance_id` int(11) DEFAULT NULL,
+  `output` longtext,
+  PRIMARY KEY (`compliance_output_id`),
+  KEY `fk_compliance_output-compliance_idx` (`host_compliance_id`),
+  CONSTRAINT `fk_compliance_output-compliance` FOREIGN KEY (`host_compliance_id`) REFERENCES `compliance` (`compliance_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

@@ -33,10 +33,12 @@ SCANS = '/scans'
 SCAN_ID = SCANS + '/{scan_id}'
 HOST_ID = SCAN_ID + '/hosts/{host_id}'
 PLUGIN_ID = HOST_ID + '/plugins/{plugin_id}'
+COMPLIANCE_ID = HOST_ID + '/compliance/{compliance_id}'
 
 SCAN_RUN = SCAN_ID + '?history_id={history_id}'
 HOST_VULN = HOST_ID + '?history_id={history_id}'
 PLUGIN_OUTPUT = PLUGIN_ID + '?history_id={history_id}'
+COMPLIANCE_OUTPUT = COMPLIANCE_ID + '?history_id={history_id}'
 
 # Database connection
 connection = pymysql.connect(host=db_hostname,
@@ -53,6 +55,8 @@ def request(url):
     url = base + url
     headers = {'X-ApiKeys': access_key + secret_key}
     response = requests.get(url=url,headers=headers,verify=False)
+    if debug:
+        print(f"[DEBUG] Requesting URL: {url}")
     return response.json()
 
 def get_folders():
@@ -69,6 +73,9 @@ def get_scan_run(scan_id, history_id):
 
 def get_host_vuln(scan_id, host_id, history_id):
     return request(HOST_VULN.format(scan_id=scan_id, host_id=host_id, history_id=history_id))
+
+def get_compliance_output(scan_id, host_id, compliance_id, history_id):
+    return request(COMPLIANCE_OUTPUT.format(scan_id=scan_id, host_id=host_id, compliance_id=compliance_id, history_id=history_id))
 
 def get_plugin_output(scan_id, host_id, plugin_id, history_id):
     return request(PLUGIN_OUTPUT.format(scan_id=scan_id, host_id=host_id, plugin_id=plugin_id, history_id=history_id))
@@ -108,7 +115,7 @@ def update_plugin(plugin, cursor):
             # New version of plugin exists, build update query
             sql = "UPDATE `plugin` \
             SET `severity` = %s, `name` = %s, `family` = %s, `synopsis` = %s, `description` = %s, `solution` = %s,\
-            `cvss_base_score` = %s, `cvss3_base_score` = %s, `cvss_vector` = %s, `cvss3_vector` = %s, `ref` = %s, `pub_date` = %s, `mod_date` = %s\
+            `cvss_base_score` = %s, `cvss3_base_score` = %s, `cvss_vector` = %s, `cvss3_vector` = %s, `ref` = %s, `pub_date` = %s, `mod_date` = %s, `policy_value` = %s\
             WHERE `plugin_id` = %s"
 
             cursor.execute(sql, (
@@ -125,6 +132,7 @@ def update_plugin(plugin, cursor):
             reference,
             plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
             plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None),
+            plugin['pluginattributes'].get('policy_value', None),
             plugin['pluginid']
             ))
 
@@ -135,8 +143,8 @@ def update_plugin(plugin, cursor):
     else:
         # Doesn't exist, build insert query
         sql = "INSERT INTO `plugin` (`plugin_id`, `severity`, `name`, `family`, `synopsis`, `description`, `solution`,\
-            `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `ref`, `pub_date`, `mod_date`)\
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            `cvss_base_score`, `cvss3_base_score`, `cvss_vector`, `cvss3_vector`, `ref`, `pub_date`, `mod_date`, `policy_value`)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
         cursor.execute(sql, (
         plugin['pluginid'], 
@@ -152,7 +160,8 @@ def update_plugin(plugin, cursor):
         plugin['pluginattributes']['risk_information'].get('cvss3_vector', None),
         reference,
         plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
-        plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None)
+        plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None),
+        plugin['pluginattributes'].get('policy_value', None)
         ))
 
 def insert_vuln_output(vuln_output, host_vuln_id, cursor):
@@ -161,6 +170,12 @@ def insert_vuln_output(vuln_output, host_vuln_id, cursor):
             sql = "INSERT INTO `vuln_output` (`host_vuln_id`, `port`, `output`)\
                     VALUES (%s, %s, %s)"
             cursor.execute(sql, (host_vuln_id, port, output['plugin_output']))
+
+def insert_compliance_output(compliance_output, host_compliance_id, cursor):
+    for output in compliance_output:
+        sql = "INSERT INTO `compliance_output` (`host_compliance_id`, `output`)\
+                VALUES (%s, %s)"
+        cursor.execute(sql, (host_compliance_id, output['plugin_output']))
 
 def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
     # Need to insert plugin first to have FK relationship
@@ -184,6 +199,21 @@ def insert_host_vuln(scan_id, host_id, plugin_id, history_id, cursor):
 
     # Finally insert vuln output
     insert_vuln_output(vuln_output['outputs'], cursor.lastrowid, cursor)
+
+def insert_compliance(scan_id, host_id, compliance_id, status, history_id, cursor):
+    compliance_output = get_compliance_output(scan_id, host_id, compliance_id, history_id)
+    if debug:
+        print(f"\n[DEBUG] Processing compliance:")
+        print(json.dumps(compliance_output, indent=2))
+
+    update_plugin(compliance_output['info']['plugindescription'], cursor)
+    # Insert compliance check
+    sql = "INSERT INTO `compliance` (`nessus_host_id`, `scan_run_id`, `compliance_id`, `status`)\
+            VALUES (%s, %s, %s, %s)"
+    cursor.execute(sql, (host_id, history_id, compliance_id, status))
+
+    # Finally insert compliance output
+    insert_compliance_output(compliance_output['outputs'], cursor.lastrowid, cursor)
 
 def insert_host(scan_id, host_id, history_id, cursor):
     # Get host vulnerabilities for a scan run
@@ -234,6 +264,11 @@ def insert_host(scan_id, host_id, history_id, cursor):
     if 'vulnerabilities' in host:
         for vuln in host['vulnerabilities']:
             insert_host_vuln(scan_id, host_id, vuln['plugin_id'], history_id, cursor)
+
+    # Insert compliance checks
+    if 'compliance' in host:
+        for comp in host['compliance']:
+            insert_compliance(scan_id, host_id, comp['plugin_id'], comp['severity'], history_id, cursor)
 
 def insert_scan_run(scan_id, history_id):
     # Get scan runs for a scan
