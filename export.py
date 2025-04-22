@@ -390,11 +390,15 @@ def update_scans():
     connection.commit()
 
     for scan in scans['scans']:
-        if scan['id'] != 172:  # Skip all scans except ID 172
-            continue
-            
         print ('Processing: ' + scan['name'])
+        # Check if the scan is in a folder with type 'trash'
+        folder_id = scan['folder_id']
+        folder_type = next((folder['type'] for folder in scans['folders'] if folder['id'] == folder_id), None)
         
+        if folder_type == 'trash' and not trash:
+            if debug:
+                print(f"[DEBUG] Skipping scan '{scan['name']}' in trash folder.")
+            continue
         # Retreive details about the current scan
         scan_details = get_scan(scan['id'])
 
