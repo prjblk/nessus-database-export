@@ -1,3 +1,0 @@
-configparser
-requests
-PyMySQL
