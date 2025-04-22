@@ -5,6 +5,7 @@ access_key=
 secret_key=
 trash=false
 debug=false
+# EXPERIMENTAL - Uses unofficial API, may break at any moment.
 compliance=false
 
 [mysql]
