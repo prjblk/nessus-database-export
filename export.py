@@ -5,6 +5,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import pymysql.cursors
 import os
 import json
+import re
 
 # Disable SSL warnings
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -20,6 +21,7 @@ secret_key = 'secretKey=' + config.get('nessus','secret_key') + ';'
 base = 'https://{hostname}:{port}'.format(hostname=nessus_hostname, port=nessus_port)
 trash = config.getboolean('nessus','trash')
 debug = config.getboolean('nessus', 'debug', fallback=False)
+compliance = config.getboolean('nessus', 'compliance', fallback=False)
 
 db_hostname = config.get('mysql','hostname')
 username = config.get('mysql','username')
@@ -49,14 +51,62 @@ connection = pymysql.connect(host=db_hostname,
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=False)
 
+# Get API token for compliance requests
+def get_api_token():
+    if not compliance:
+        return None
+        
+    url = base + '/nessus6.js'
+    headers = {'X-ApiKeys': access_key + secret_key}
+    response = requests.get(url=url, headers=headers, verify=False)
+    
+    if response.status_code == 200:
+        if debug:
+            print(f"[DEBUG] nessus6.js response:")
+            print(response.text[:500])  # Print first 500 chars to see the structure
+            
+        # Try different regex patterns
+        patterns = [
+            r'getApiToken\(\),value:function\(\){return"([^"]+)"',
+            r'getApiToken\(\){return"([^"]+)"',
+            r'getApiToken:function\(\){return"([^"]+)"',
+            r'getApiToken.*?return"([^"]+)"'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, response.text)
+            if match:
+                token = match.group(1)
+                if debug:
+                    print(f"[DEBUG] Found API token: {token}")
+                return token
+                
+    if debug:
+        print(f"[DEBUG] No API token found in response")
+        print(f"[DEBUG] Response status code: {response.status_code}")
+    return None
+
+api_token = get_api_token()
+if debug:
+    print(f"[DEBUG] Initial API token: {api_token}")
+
 # ---Functions---
 # Nessus API functions
 def request(url):
     url = base + url
     headers = {'X-ApiKeys': access_key + secret_key}
-    response = requests.get(url=url,headers=headers,verify=False)
+    
+    # Add API token for compliance requests
+    if compliance and api_token and 'compliance' in url:
+        if debug:
+            print(f"[DEBUG] Adding API token for compliance request: {url}")
+        headers['X-API-Token'] = api_token
+        
+    response = requests.get(url=url, headers=headers, verify=False)
     if debug:
         print(f"[DEBUG] Requesting URL: {url}")
+        print(f"[DEBUG] Headers: {headers}")
+        print(f"[DEBUG] Response status: {response.status_code}")
     return response.json()
 
 def get_folders():
@@ -121,17 +171,17 @@ def update_plugin(plugin, cursor):
             cursor.execute(sql, (
             plugin['severity'], 
             plugin['pluginname'], 
-            plugin['pluginfamily'],
+            plugin.get('pluginfamily', None) or plugin.get('plugin_family', None),
             plugin['pluginattributes'].get('synopsis', None),
             plugin['pluginattributes'].get('description', None),
             plugin['pluginattributes'].get('solution', None),
-            plugin['pluginattributes']['risk_information'].get('cvss_base_score', None),
-            plugin['pluginattributes']['risk_information'].get('cvss3_base_score', None),
-            plugin['pluginattributes']['risk_information'].get('cvss_vector', None),
-            plugin['pluginattributes']['risk_information'].get('cvss3_vector', None),
+            plugin['pluginattributes'].get('risk_information', {}).get('cvss_base_score', None),
+            plugin['pluginattributes'].get('risk_information', {}).get('cvss3_base_score', None),
+            plugin['pluginattributes'].get('risk_information', {}).get('cvss_vector', None),
+            plugin['pluginattributes'].get('risk_information', {}).get('cvss3_vector', None),
             reference,
-            plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
-            plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None),
+            plugin['pluginattributes'].get('plugin_information', {}).get('plugin_publication_date', None),
+            plugin['pluginattributes'].get('plugin_information', {}).get('plugin_modification_date', None),
             plugin['pluginattributes'].get('policy_value', None),
             plugin['pluginid']
             ))
@@ -150,17 +200,17 @@ def update_plugin(plugin, cursor):
         plugin['pluginid'], 
         plugin['severity'], 
         plugin['pluginname'], 
-        plugin['pluginfamily'],
+        plugin.get('pluginfamily', None) or plugin.get('plugin_family', None),
         plugin['pluginattributes'].get('synopsis', None),
         plugin['pluginattributes'].get('description', None),
         plugin['pluginattributes'].get('solution', None),
-        plugin['pluginattributes']['risk_information'].get('cvss_base_score', None),
-        plugin['pluginattributes']['risk_information'].get('cvss3_base_score', None),
-        plugin['pluginattributes']['risk_information'].get('cvss_vector', None),
-        plugin['pluginattributes']['risk_information'].get('cvss3_vector', None),
+        plugin['pluginattributes'].get('risk_information', {}).get('cvss_base_score', None),
+        plugin['pluginattributes'].get('risk_information', {}).get('cvss3_base_score', None),
+        plugin['pluginattributes'].get('risk_information', {}).get('cvss_vector', None),
+        plugin['pluginattributes'].get('risk_information', {}).get('cvss3_vector', None),
         reference,
-        plugin['pluginattributes']['plugin_information'].get('plugin_publication_date', None),
-        plugin['pluginattributes']['plugin_information'].get('plugin_modification_date', None),
+        plugin['pluginattributes'].get('plugin_information', {}).get('plugin_publication_date', None),
+        plugin['pluginattributes'].get('plugin_information', {}).get('plugin_modification_date', None),
         plugin['pluginattributes'].get('policy_value', None)
         ))
 
@@ -237,7 +287,7 @@ def insert_host(scan_id, host_id, history_id, cursor):
     # Count compliance checks
     # 1 is passed, 2 is warning, 3 is fail
     comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
-    if 'compliance' in host:
+    if compliance and 'compliance' in host:
         for comp in host['compliance']:
             comp_count[comp['severity']] += comp['count']
 
@@ -266,7 +316,7 @@ def insert_host(scan_id, host_id, history_id, cursor):
             insert_host_vuln(scan_id, host_id, vuln['plugin_id'], history_id, cursor)
 
     # Insert compliance checks
-    if 'compliance' in host:
+    if compliance and 'compliance' in host:
         for comp in host['compliance']:
             insert_compliance(scan_id, host_id, comp['plugin_id'], comp['severity'], history_id, cursor)
 
@@ -291,7 +341,7 @@ def insert_scan_run(scan_id, history_id):
     # Count compliance checks
     # 1 is passed, 2 is warning, 3 is fail
     comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
-    if 'compliance' in scan_run:
+    if compliance and 'compliance' in scan_run:
         for comp in scan_run['compliance']:
             comp_count[comp['severity']] += comp['count']
 
@@ -340,6 +390,9 @@ def update_scans():
     connection.commit()
 
     for scan in scans['scans']:
+        if scan['id'] != 172:  # Skip all scans except ID 172
+            continue
+            
         print ('Processing: ' + scan['name'])
         
         # Retreive details about the current scan

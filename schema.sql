@@ -190,13 +190,11 @@ CREATE TABLE `compliance` (
   `compliance_id` int(11) NOT NULL AUTO_INCREMENT,
   `nessus_host_id` int(11) DEFAULT NULL,
   `scan_run_id` int(11) DEFAULT NULL,
-  `compliance_id` int(11) DEFAULT NULL,
   `status` int(11) DEFAULT NULL,
   PRIMARY KEY (`compliance_id`),
   KEY `fk_compliance-scan_run_idx` (`scan_run_id`),
   KEY `fk_compliance-plugin_idx` (`compliance_id`),
-  CONSTRAINT `fk_compliance-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_compliance-plugin` FOREIGN KEY (`compliance_id`) REFERENCES `plugin` (`plugin_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_compliance-scan_run` FOREIGN KEY (`scan_run_id`) REFERENCES `scan_run` (`scan_run_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

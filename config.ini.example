@@ -5,6 +5,7 @@ access_key=
 secret_key=
 trash=false
 debug=false
+compliance=false
 
 [mysql]
 hostname=localhost
