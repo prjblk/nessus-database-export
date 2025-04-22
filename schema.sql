@@ -26,8 +26,8 @@ DROP TABLE IF EXISTS `folder`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `folder` (
   `folder_id` int(11) NOT NULL,
-  `type` varchar(45) DEFAULT NULL,
-  `name` varchar(45) DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`folder_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -44,7 +44,7 @@ CREATE TABLE `host` (
   `nessus_host_id` int(11) DEFAULT NULL,
   `scan_run_id` int(11) DEFAULT NULL,
   `scan_id` int(11) DEFAULT NULL,
-  `host_ip` varchar(45) DEFAULT NULL,
+  `host_ip` varchar(255) DEFAULT NULL,
   `host_fqdn` varchar(255) DEFAULT NULL,
   `host_start` varchar(255) DEFAULT NULL,
   `host_end` varchar(255) DEFAULT NULL,
@@ -102,11 +102,11 @@ CREATE TABLE `plugin` (
   `solution` longtext,
   `cvss_base_score` double DEFAULT NULL,
   `cvss3_base_score` double DEFAULT NULL,
-  `cvss_vector` varchar(45) DEFAULT NULL,
-  `cvss3_vector` varchar(45) DEFAULT NULL,
+  `cvss_vector` varchar(255) DEFAULT NULL,
+  `cvss3_vector` varchar(255) DEFAULT NULL,
   `ref` longtext,
-  `pub_date` varchar(45) DEFAULT NULL,
-  `mod_date` varchar(45) DEFAULT NULL,
+  `pub_date` varchar(255) DEFAULT NULL,
+  `mod_date` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`plugin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -121,8 +121,8 @@ DROP TABLE IF EXISTS `scan`;
 CREATE TABLE `scan` (
   `scan_id` int(11) NOT NULL,
   `folder_id` int(11) DEFAULT NULL,
-  `type` varchar(45) DEFAULT NULL,
-  `name` varchar(45) DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`scan_id`),
   KEY `fk_folder_id_idx` (`folder_id`),
   CONSTRAINT `fk_scan-folder` FOREIGN KEY (`folder_id`) REFERENCES `folder` (`folder_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
@@ -164,7 +164,7 @@ DROP TABLE IF EXISTS `vuln_output`;
 CREATE TABLE `vuln_output` (
   `vuln_output_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_vuln_id` int(11) DEFAULT NULL,
-  `port` varchar(45) DEFAULT NULL,
+  `port` varchar(255) DEFAULT NULL,
   `output` longtext,
   PRIMARY KEY (`vuln_output_id`),
   KEY `fk_vuln_output-host_vuln_id_idx` (`host_vuln_id`),
