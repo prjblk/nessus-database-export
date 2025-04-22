@@ -200,13 +200,22 @@ def insert_host(scan_id, host_id, history_id, cursor):
     # Count number of vulns of each severity for this host in this scan run
     # 0 is informational, 4 is critical
     sev_count = [0] * 5
-    for vuln in host['vulnerabilities']:
-        sev_count[vuln['severity']] += vuln['count']
+    if 'vulnerabilities' in host:
+        for vuln in host['vulnerabilities']:
+            sev_count[vuln['severity']] += vuln['count']
     
+    # Count compliance checks
+    # 1 is passed, 2 is warning, 3 is fail
+    comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
+    if 'compliance' in host:
+        for comp in host['compliance']:
+            comp_count[comp['severity']] += comp['count']
+
     # Insert host information
     sql = "INSERT INTO `host` (`nessus_host_id`, `scan_run_id`, `scan_id`, `host_ip`, `host_fqdn`, `host_start`, `host_end`, `os`,\
-        `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`,\
+        `comp_pass_count`, `comp_warning_count`, `comp_fail_count`)\
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
     cursor.execute(sql, (
         host_id, 
@@ -217,12 +226,14 @@ def insert_host(scan_id, host_id, history_id, cursor):
         host['info'].get('host_start', None), 
         host['info'].get('host_end', None), 
         host['info'].get('operating-system', None),
-        sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]
+        sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0],
+        comp_count[1], comp_count[2], comp_count[3]
         ))
 
     # Insert host vulnerabilities
-    for vuln in host['vulnerabilities']:
-        insert_host_vuln(scan_id, host_id, vuln['plugin_id'], history_id, cursor)
+    if 'vulnerabilities' in host:
+        for vuln in host['vulnerabilities']:
+            insert_host_vuln(scan_id, host_id, vuln['plugin_id'], history_id, cursor)
 
 def insert_scan_run(scan_id, history_id):
     # Get scan runs for a scan
@@ -238,14 +249,23 @@ def insert_scan_run(scan_id, history_id):
     # Count number of vulns of each severity for this scan run
     # 0 is informational, 4 is critical
     sev_count = [0] * 5
-    for vuln in scan_run['vulnerabilities']:
-        sev_count[vuln['severity']] += vuln['count']
+    if 'vulnerabilities' in scan_run:
+        for vuln in scan_run['vulnerabilities']:
+            sev_count[vuln['severity']] += vuln['count']
+
+    # Count compliance checks
+    # 1 is passed, 2 is warning, 3 is fail
+    comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
+    if 'compliance' in scan_run:
+        for comp in scan_run['compliance']:
+            comp_count[comp['severity']] += comp['count']
 
     with connection.cursor() as cursor:
         # Insert scan run details
         sql = "INSERT INTO `scan_run` (`scan_run_id`, `scan_id`, `scan_start`,`scan_end`, `targets`, `host_count`,\
-            `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`)\
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            `critical_count`, `high_count`, `medium_count`, `low_count`, `info_count`,\
+            `comp_pass_count`, `comp_warning_count`, `comp_fail_count`)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         
         cursor.execute(sql, (
             history_id, 
@@ -254,7 +274,8 @@ def insert_scan_run(scan_id, history_id):
             scan_run['info']['scanner_end'],
             scan_run['info']['targets'], 
             scan_run['info']['hostcount'],
-            sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0]
+            sev_count[4], sev_count[3], sev_count[2], sev_count[1], sev_count[0],
+            comp_count[1], comp_count[2], comp_count[3]
             ))
         
         # Insert hosts in scan run
