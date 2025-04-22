@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  mysql:
+    build: .
+    container_name: nessus-mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=nessusdb
+      - MYSQL_USER=nessususer
+      - MYSQL_PASSWORD=nessuspassword
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    name: nessus-mysql-data 
