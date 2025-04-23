@@ -14,7 +14,7 @@ This directory contains the Docker configuration for the Nessus database, which 
 1. Make sure you have Docker and Docker Compose installed
 2. From the root directory, run:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 ## Database Access
