@@ -26,7 +26,7 @@ BEGIN
         scan_run_id INT(11), 
         host_id INT(11), 
         scan_id INT(11), 
-        host_ip VARCHAR(45), 
+        host_ip VARCHAR(255), 
         host_fqdn VARCHAR(255), 
         host_start VARCHAR(255), 
         host_end VARCHAR(255), 
@@ -35,7 +35,10 @@ BEGIN
         high_count INT(11), 
         medium_count INT(11), 
         low_count INT(11), 
-        info_count INT(11), 
+        info_count INT(11),
+        comp_warning_count INT(11),
+        comp_pass_count INT(11),
+        comp_fail_count INT(11),
         severity INT(11), 
         name LONGTEXT, 
         family LONGTEXT, 
@@ -44,13 +47,14 @@ BEGIN
         solution LONGTEXT, 
         cvss_base_score DOUBLE, 
         cvss3_base_score DOUBLE, 
-        cvss_vector VARCHAR(45), 
-        cvss3_vector VARCHAR(45), 
+        cvss_vector VARCHAR(255), 
+        cvss3_vector VARCHAR(255), 
         ref LONGTEXT, 
-        pub_date VARCHAR(45), 
-        mod_date VARCHAR(45), 
+        pub_date VARCHAR(255), 
+        mod_date VARCHAR(255),
+        policy_value LONGTEXT,
         vuln_output_id INT(11), 
-        port VARCHAR(45), 
+        port VARCHAR(255), 
         output LONGTEXT
     );
 
@@ -62,7 +66,7 @@ BEGIN
                 LEAVE loop_list;
             END IF;
             
-            INSERT INTO temp_table (host_vuln_id, plugin_id, nessus_host_id, scan_run_id, host_id, scan_id, host_ip, host_fqdn, host_start, host_end, os, critical_count, high_count, medium_count, low_count, info_count, severity, name, family, synopsis, description, solution, cvss_base_score, cvss3_base_score, cvss_vector, cvss3_vector, ref, pub_date, mod_date, vuln_output_id, port, output)
+            INSERT INTO temp_table (host_vuln_id, plugin_id, nessus_host_id, scan_run_id, host_id, scan_id, host_ip, host_fqdn, host_start, host_end, os, critical_count, high_count, medium_count, low_count, info_count, comp_warning_count, comp_pass_count, comp_fail_count, severity, name, family, synopsis, description, solution, cvss_base_score, cvss3_base_score, cvss_vector, cvss3_vector, ref, pub_date, mod_date, policy_value, vuln_output_id, port, output)
             SELECT * FROM host 
             NATURAL JOIN host_vuln 
             NATURAL JOIN plugin 

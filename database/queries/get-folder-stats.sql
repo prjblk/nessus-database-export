@@ -30,9 +30,12 @@ BEGIN
         medium_count INT(11),
         low_count INT(11),
         info_count INT(11),
+        comp_warning_count INT(11),
+        comp_pass_count INT(11),
+        comp_fail_count INT(11),
         folder_id INT(11),
-        type VARCHAR(45),
-        name VARCHAR(45)
+        type VARCHAR(255),
+        name VARCHAR(255)
     );
 
    OPEN cur_list;
@@ -43,7 +46,7 @@ BEGIN
             LEAVE loop_list;
         END IF;
 		
-        INSERT INTO temp_table (scan_id, scan_run_id, scan_start, scan_end, targets, host_count, critical_count, high_count, medium_count, low_count, info_count, folder_id, type, name)
+        INSERT INTO temp_table (scan_id, scan_run_id, scan_start, scan_end, targets, host_count, critical_count, high_count, medium_count, low_count, info_count, comp_warning_count, comp_pass_count, comp_fail_count, folder_id, type, name)
         SELECT * FROM nessusdb.scan_run 
 		NATURAL JOIN nessusdb.scan 
 		WHERE nessusdb.scan_run.scan_id = cur_scan_id 
