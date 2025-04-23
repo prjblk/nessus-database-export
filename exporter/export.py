@@ -282,14 +282,16 @@ def insert_host(scan_id, host_id, history_id, cursor):
     sev_count = [0] * 5
     if 'vulnerabilities' in host:
         for vuln in host['vulnerabilities']:
-            sev_count[vuln['severity']] += vuln['count']
+            if vuln['severity'] != None:
+                sev_count[vuln['severity']] += vuln['count']
     
     # Count compliance checks
     # 1 is passed, 2 is warning, 3 is fail
     comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
     if compliance and 'compliance' in host:
         for comp in host['compliance']:
-            comp_count[comp['severity']] += comp['count']
+            if comp['severity'] != None:
+                comp_count[comp['severity']] += comp['count']
 
     # Insert host information
     sql = "INSERT INTO `host` (`nessus_host_id`, `scan_run_id`, `scan_id`, `host_ip`, `host_fqdn`, `host_start`, `host_end`, `os`,\
@@ -336,14 +338,16 @@ def insert_scan_run(scan_id, history_id):
     sev_count = [0] * 5
     if 'vulnerabilities' in scan_run:
         for vuln in scan_run['vulnerabilities']:
-            sev_count[vuln['severity']] += vuln['count']
+            if vuln['severity'] != None:
+                sev_count[vuln['severity']] += vuln['count']
 
     # Count compliance checks
     # 1 is passed, 2 is warning, 3 is fail
     comp_count = [0] * 4  # Index 0 unused, 1=passed, 2=warning, 3=fail
     if compliance and 'compliance' in scan_run:
         for comp in scan_run['compliance']:
-            comp_count[comp['severity']] += comp['count']
+            if comp['severity'] != None:
+                comp_count[comp['severity']] += comp['count']
 
     with connection.cursor() as cursor:
         # Insert scan run details
